@@ -1,13 +1,82 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
+// Supabase için en sağlıklı bağlantı ayarı budur
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+}
+
+model User {
+  id                    String        @id @default(uuid())
+  email                 String        @unique
+  name                  String?
+  
+  free_generation_count Int           @default(2)
+  paid_download_credits Int           @default(0)
+  subscription_plan     String        @default("free")
+  
+  videos                Video[]
+  transactions          Transaction[]
+  
+  createdAt             DateTime      @default(now())
+}
+
+model Template {
+  id               String   @id @default(uuid())
+  name             String   
+  description      String?
+  
+  ai_model_name    String   
+  base_prompt      String   
+  required_inputs  Json     
+  
+  isActive         Boolean  @default(true)
+  videos           Video[]
+}
+
+model Video {
+  id                    String   @id @default(uuid())
+  userId                String
+  templateId            String
+  
+  ai_generation_id      String?  @unique 
+  status                String   @default("PROCESSING") 
+  
+  watermarked_video_url String?  
+  clean_video_url       String?  
+  is_clean_downloaded   Boolean  @default(false) 
+  
+  user                  User     @relation(fields: [userId], references: [id])
+  template              Template @relation(fields: [templateId], references: [id])
+  
+  createdAt             DateTime @default(now())
+}
+
+model Plan {
+  id               String   @id @default(uuid())
+  name             String   
+  price            Float    
+  download_credits Int      
+  stripe_price_id  String?  
+  isActive         Boolean  @default(true)
+  
+  transactions     Transaction[]
+}
+
+model Transaction {
+  id               String   @id @default(uuid())
+  userId           String
+  
+  type             String   
+  amount           Float?   
+  credits_added    Int      @default(0)
+  credits_spent    Int      @default(0) 
+  description      String?  
+  
+  planId           String?  
+  plan             Plan?    @relation(fields: [planId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
+  
+  createdAt        DateTime @default(now())
 }
