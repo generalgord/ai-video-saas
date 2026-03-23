@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import VideoActions from "./VideoActions";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -92,17 +93,26 @@ export default async function DashboardPage() {
                             <Card key={video.id} className="overflow-hidden">
                                 {/* Video Thumbnail (Şimdilik yer tutucu) */}
                                 <div className="aspect-video bg-zinc-100 relative flex items-center justify-center">
-                                    {video.status === 'PROCESSING' ? (
+                                    {/* Hem PROCESSING hem de WATERMARKING durumunda spinner göster */}
+                                    {['PROCESSING', 'WATERMARKING'].includes(video.status) ? (
                                         <div className="flex flex-col items-center text-zinc-400">
                                             <div className="w-8 h-8 border-4 border-zinc-300 border-t-zinc-900 rounded-full animate-spin mb-2" />
-                                            <span className="text-sm font-medium">İşleniyor...</span>
+                                            <span className="text-sm font-medium">{video.status === 'PROCESSING' ? 'Yapay Zeka Üretiyor...' : 'Filigran Ekleniyor...'}</span>
                                         </div>
-                                    ) : (
+                                    ) : video.watermarked_video_url ? (
+                                        // EĞER FİLİGRANLI URL GERÇEKTEN VARSA VİDEOYU GÖSTER
                                         <video
-                                            src={video.watermarked_video_url || ""}
+                                            src={video.watermarked_video_url}
                                             className="w-full h-full object-cover"
                                             controls
+                                            controlsList="nodownload" // Menüdeki İndir butonunu gizler
+                                            onContextMenu={(e) => e.preventDefault()} // Sağ tıklamayı tamamen kapatır
                                         />
+                                    ) : (
+                                        // ESKİ VEYA HATALI KAYITLAR İÇİN GÜVENLİK YEDEĞİ
+                                        <div className="flex flex-col items-center text-zinc-500">
+                                            <span className="text-sm">Video mevcut değil.</span>
+                                        </div>
                                     )}
                                 </div>
 
@@ -118,6 +128,12 @@ export default async function DashboardPage() {
                                             {new Date(video.createdAt).toLocaleDateString('tr-TR')}
                                         </span>
                                     </div>
+
+                                    {/* YENİ: İstemci bileşenimizi buraya ekledik */}
+                                    {video.status === 'COMPLETED' && (
+                                        <VideoActions video={video} />
+                                    )}
+
                                 </CardContent>
                             </Card>
                         ))}
